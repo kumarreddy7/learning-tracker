@@ -1,0 +1,1366 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learning Tracker — 30–60 LPA Goal</title>
+    <!--
+  ================================================================
+  LEARNING TRACKER — Offline + Cross-device Sync
+  ================================================================
+  HOW TO SET UP SYNC (takes ~5 minutes, completely free):
+
+  1. Go to https://console.firebase.google.com
+  2. Click "Create project" → name it anything → disable Analytics → Create
+  3. In left sidebar: "Firestore Database" → Create database
+     → "Start in test mode" → choose any location → Enable
+  4. Click gear icon (Project Settings) → General tab
+     → Scroll to "Your apps" → click </> (Web) → Register app
+     → Copy the firebaseConfig object
+  5. Open this file in a text editor, paste your config below
+     (replace the empty strings with your actual values)
+  6. Open the file in your browser — done!
+
+  TO USE ON MULTIPLE DEVICES:
+  - Use the same username on all devices
+  - Firebase syncs everything automatically
+  - Works offline too — syncs when back online
+
+  TO SHARE PROGRESS WITH CLAUDE:
+  - Click the "Share with Claude" button
+  - It copies a summary to clipboard
+  - Paste into any Claude.ai chat
+  ================================================================
+  -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css"
+    />
+    <style>
+      :root {
+        --bg: #f1f5f9;
+        --surface: #ffffff;
+        --surface2: #f8fafc;
+        --border: rgba(0, 0, 0, 0.09);
+        --text: #0f172a;
+        --text2: #64748b;
+        --text3: #94a3b8;
+        --radius: 12px;
+        --accent: #6366f1;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f172a;
+          --surface: #1e293b;
+          --surface2: #334155;
+          --border: rgba(255, 255, 255, 0.09);
+          --text: #f1f5f9;
+          --text2: #94a3b8;
+          --text3: #64748b;
+        }
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        padding-bottom: 3rem;
+      }
+      .container {
+        max-width: 840px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+      }
+
+      /* Cards */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+      }
+
+      /* Header */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+      .header-right {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      /* Buttons */
+      .btn {
+        padding: 8px 14px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: opacity 0.15s;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        opacity: 0.85;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn-success {
+        background: #22c55e;
+        color: #fff;
+        cursor: default;
+      }
+      .btn-share {
+        background: #0ea5e9;
+        color: #fff;
+      }
+      .btn-ghost {
+        background: var(--surface2);
+        color: var(--text2);
+        border: 1px solid var(--border);
+      }
+
+      /* Sync badge */
+      .sync-badge {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 99px;
+        font-weight: 500;
+      }
+
+      /* Tabs */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 4px;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+      }
+      .tab {
+        flex: 1;
+        padding: 8px 6px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        background: transparent;
+        color: var(--text2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        transition: all 0.15s;
+      }
+      .tab.active {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      /* Progress bars */
+      .pbar-wrap {
+        background: var(--surface2);
+        border-radius: 99px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .pbar {
+        border-radius: 99px;
+        transition: width 0.4s ease;
+      }
+
+      /* Topic cards */
+      .topic-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 8px;
+        overflow: hidden;
+      }
+      .topic-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 16px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        text-align: left;
+        color: var(--text);
+      }
+      .topic-btn:hover {
+        background: var(--surface2);
+      }
+
+      /* Check rows */
+      .check-list {
+        border-top: 1px solid var(--border);
+      }
+      .check-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.1s;
+      }
+      .check-row:last-child {
+        border-bottom: none;
+      }
+      .check-row:hover {
+        background: var(--surface2);
+      }
+      .checkbx {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.15s;
+      }
+
+      /* Grid */
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      /* Streak */
+      .streak-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+
+      /* Modal */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 1rem;
+        backdrop-filter: blur(4px);
+      }
+      .modal {
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 1.75rem;
+        max-width: 500px;
+        width: 100%;
+        border: 1px solid var(--border);
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      .modal h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .modal-sub {
+        font-size: 13px;
+        color: var(--text2);
+        margin-bottom: 1.25rem;
+        line-height: 1.6;
+      }
+      .field-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text2);
+        margin-bottom: 5px;
+        display: block;
+      }
+      .field-input {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface2);
+        color: var(--text);
+        font-size: 13px;
+        margin-bottom: 12px;
+        font-family: inherit;
+      }
+      .field-input:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .field-textarea {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface2);
+        color: var(--text);
+        font-size: 12px;
+        margin-bottom: 12px;
+        font-family: monospace;
+        min-height: 120px;
+        resize: vertical;
+      }
+      .steps {
+        margin-bottom: 1rem;
+      }
+      .step {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: flex-start;
+      }
+      .step-num {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .step-text {
+        font-size: 12px;
+        color: var(--text2);
+        line-height: 1.6;
+      }
+      .step-text a {
+        color: var(--accent);
+      }
+      .divider {
+        text-align: center;
+        font-size: 12px;
+        color: var(--text3);
+        margin: 12px 0;
+      }
+      .offline-link {
+        text-align: center;
+        font-size: 12px;
+        color: var(--text3);
+        cursor: pointer;
+        text-decoration: underline;
+        margin-top: 8px;
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #0f172a;
+        color: #f1f5f9;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 13px;
+        z-index: 200;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+        white-space: nowrap;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      }
+      .toast.show {
+        opacity: 1;
+      }
+
+      @media (max-width: 520px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+        .tab span {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===== SETUP MODAL ===== -->
+    <div class="modal-overlay" id="setupModal">
+      <div class="modal">
+        <h2>⚡ Set up your tracker</h2>
+        <p class="modal-sub">
+          Set up Firebase for free cross-device sync (phone + laptop +
+          anywhere). Takes ~5 minutes. Or skip and use offline on one device.
+        </p>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">
+              Go to
+              <a href="https://console.firebase.google.com" target="_blank"
+                >console.firebase.google.com</a
+              >
+              → Create project → name it anything → disable Analytics → Create
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">
+              Left sidebar → <b>Firestore Database</b> → Create database →
+              <b>Start in test mode</b> → choose any region → Enable
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">
+              ⚙️ Project Settings → General → scroll to "Your apps" → click
+              <b>&lt;/&gt;</b> (Web) → Register → copy the
+              <b>firebaseConfig</b> object → paste below
+            </div>
+          </div>
+        </div>
+
+        <label class="field-label">Paste your firebaseConfig here</label>
+        <textarea
+          class="field-textarea"
+          id="configInput"
+          placeholder='{
+  apiKey: "AIzaSy...",
+  authDomain: "myapp.firebaseapp.com",
+  projectId: "myapp-12345",
+  storageBucket: "myapp.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123..."
+}'
+        ></textarea>
+
+        <label class="field-label"
+          >Your sync username (use the same on all devices)</label
+        >
+        <input
+          class="field-input"
+          id="usernameInput"
+          placeholder="e.g. john123 or yourname"
+          maxlength="30"
+        />
+
+        <button
+          class="btn btn-primary"
+          style="width: 100%; justify-content: center; padding: 11px"
+          onclick="setupFirebase()"
+        >
+          <i class="ti ti-cloud-upload"></i> Save & start syncing
+        </button>
+        <div class="divider">— or —</div>
+        <button
+          class="btn btn-ghost"
+          style="width: 100%; justify-content: center"
+          onclick="useOfflineOnly()"
+        >
+          Use offline only (one device, no sync)
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== MAIN APP ===== -->
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div>
+          <div style="font-size: 20px; font-weight: 700; color: var(--text)">
+            Learning Tracker
+          </div>
+          <div style="font-size: 12px; color: var(--text2); margin-top: 3px">
+            Goal: 30–60 LPA · 4 hrs/day ·
+            <span id="syncUser" style="color: var(--accent)"></span>
+          </div>
+        </div>
+        <div class="header-right">
+          <span
+            class="sync-badge"
+            id="syncBadge"
+            style="background: #fef3c7; color: #92400e"
+            >⏳ loading</span
+          >
+          <button class="btn btn-share" onclick="shareWithClaude()">
+            <i class="ti ti-copy"></i> Share with Claude
+          </button>
+          <button class="btn btn-primary" id="markBtn" onclick="markToday()">
+            <i class="ti ti-flame"></i> Mark today done
+          </button>
+        </div>
+      </div>
+
+      <!-- Streak bar -->
+      <div
+        class="card"
+        style="
+          margin-bottom: 1rem;
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          flex-wrap: wrap;
+        "
+      >
+        <div style="text-align: center; min-width: 56px">
+          <div
+            id="streakCount"
+            style="font-size: 30px; font-weight: 700; color: #f59e0b"
+          >
+            0
+          </div>
+          <div style="font-size: 11px; color: var(--text2)">day streak</div>
+        </div>
+        <div style="flex: 1; min-width: 200px">
+          <div
+            id="streakDots"
+            style="display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 4px"
+          ></div>
+          <div style="font-size: 11px; color: var(--text3)">
+            Last 30 days · green = active day
+          </div>
+        </div>
+        <div style="text-align: center; min-width: 56px">
+          <div
+            id="overallPct"
+            style="font-size: 30px; font-weight: 700; color: var(--accent)"
+          >
+            0%
+          </div>
+          <div style="font-size: 11px; color: var(--text2)">overall done</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('dashboard', this)">
+          <i class="ti ti-layout-dashboard"></i><span>Dashboard</span>
+        </button>
+        <button class="tab" onclick="switchTab('dsa', this)">
+          <i class="ti ti-code"></i><span>Python DSA</span>
+        </button>
+        <button class="tab" onclick="switchTab('java', this)">
+          <i class="ti ti-device-laptop"></i><span>Java Stack</span>
+        </button>
+      </div>
+
+      <div id="tab-dashboard"></div>
+      <div id="tab-dsa" style="display: none"></div>
+      <div id="tab-java" style="display: none"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Firebase SDKs (loaded from CDN, gracefully fails offline) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyCohJy2l1jKgDEcxIYZYZoKPG7Ktthpt-A",
+        authDomain: "learning-tracker-by-mrneelapu.firebaseapp.com",
+        projectId: "learning-tracker-by-mrneelapu",
+        storageBucket: "learning-tracker-by-mrneelapu.firebasestorage.app",
+        messagingSenderId: "260049230577",
+        appId: "1:260049230577:web:9b9267232c6a7d22682750",
+        measurementId: "G-90LSC6MNCZ",
+      };
+      // ================================================================
+      // DATA
+      // ================================================================
+      const DSA = [
+        {
+          id: "arrays",
+          name: "Arrays & Hashing",
+          color: "#6366f1",
+          items: [
+            "Two Sum",
+            "Contains Duplicate",
+            "Valid Anagram",
+            "Group Anagrams",
+            "Top K Frequent Elements",
+            "Product of Array Except Self",
+            "Valid Sudoku",
+            "Longest Consecutive Sequence",
+            "Encode & Decode Strings",
+          ],
+        },
+        {
+          id: "twoptr",
+          name: "Two Pointers",
+          color: "#8b5cf6",
+          items: [
+            "Valid Palindrome",
+            "3Sum",
+            "Container With Most Water",
+            "Trapping Rain Water",
+            "Two Sum II",
+          ],
+        },
+        {
+          id: "sliding",
+          name: "Sliding Window",
+          color: "#a855f7",
+          items: [
+            "Best Time to Buy & Sell Stock",
+            "Longest Substring Without Repeating Characters",
+            "Longest Repeating Character Replacement",
+            "Minimum Window Substring",
+          ],
+        },
+        {
+          id: "stack",
+          name: "Stack",
+          color: "#ec4899",
+          items: [
+            "Valid Parentheses",
+            "Min Stack",
+            "Evaluate Reverse Polish Notation",
+            "Generate Parentheses",
+            "Daily Temperatures",
+            "Car Fleet",
+            "Largest Rectangle in Histogram",
+          ],
+        },
+        {
+          id: "bsearch",
+          name: "Binary Search",
+          color: "#f43f5e",
+          items: [
+            "Binary Search",
+            "Search a 2D Matrix",
+            "Koko Eating Bananas",
+            "Find Minimum in Rotated Sorted Array",
+            "Search in Rotated Sorted Array",
+            "Time Based Key-Value Store",
+            "Median of Two Sorted Arrays",
+          ],
+        },
+        {
+          id: "linked",
+          name: "Linked List",
+          color: "#ef4444",
+          items: [
+            "Reverse Linked List",
+            "Merge Two Sorted Lists",
+            "Reorder List",
+            "Remove Nth Node From End",
+            "Copy List with Random Pointer",
+            "Add Two Numbers",
+            "Linked List Cycle",
+            "Find the Duplicate Number",
+            "LRU Cache",
+            "Merge K Sorted Lists",
+            "Reverse Nodes in k-Group",
+          ],
+        },
+        {
+          id: "trees",
+          name: "Trees",
+          color: "#f97316",
+          items: [
+            "Invert Binary Tree",
+            "Maximum Depth of Binary Tree",
+            "Diameter of Binary Tree",
+            "Balanced Binary Tree",
+            "Same Tree",
+            "Subtree of Another Tree",
+            "Lowest Common Ancestor of BST",
+            "Binary Tree Level Order Traversal",
+            "Binary Tree Right Side View",
+            "Count Good Nodes in Binary Tree",
+            "Validate Binary Search Tree",
+            "Kth Smallest Element in BST",
+            "Construct Tree from Preorder and Inorder",
+            "Binary Tree Maximum Path Sum",
+            "Serialize and Deserialize Binary Tree",
+          ],
+        },
+        {
+          id: "heap",
+          name: "Heap / Priority Queue",
+          color: "#eab308",
+          items: [
+            "Kth Largest Element in a Stream",
+            "Last Stone Weight",
+            "K Closest Points to Origin",
+            "Kth Largest Element in Array",
+            "Task Scheduler",
+            "Design Twitter",
+          ],
+        },
+        {
+          id: "bt",
+          name: "Backtracking",
+          color: "#84cc16",
+          items: [
+            "Subsets",
+            "Combination Sum",
+            "Permutations",
+            "Subsets II",
+            "Combination Sum II",
+            "Word Search",
+            "Palindrome Partitioning",
+            "Letter Combinations of Phone Number",
+            "N-Queens",
+          ],
+        },
+        {
+          id: "graphs",
+          name: "Graphs",
+          color: "#22c55e",
+          items: [
+            "Number of Islands",
+            "Clone Graph",
+            "Max Area of Island",
+            "Pacific Atlantic Water Flow",
+            "Surrounded Regions",
+            "Rotting Oranges",
+            "Walls and Gates",
+            "Course Schedule",
+            "Course Schedule II",
+            "Redundant Connection",
+            "Number of Connected Components",
+            "Graph Valid Tree",
+            "Word Ladder",
+          ],
+        },
+        {
+          id: "dp",
+          name: "Dynamic Programming",
+          color: "#14b8a6",
+          items: [
+            "Climbing Stairs",
+            "Min Cost Climbing Stairs",
+            "House Robber",
+            "House Robber II",
+            "Longest Palindromic Substring",
+            "Palindromic Substrings",
+            "Decode Ways",
+            "Coin Change",
+            "Maximum Product Subarray",
+            "Word Break",
+            "Longest Increasing Subsequence",
+            "Partition Equal Subset Sum",
+          ],
+        },
+        {
+          id: "intervals",
+          name: "Intervals",
+          color: "#06b6d4",
+          items: [
+            "Insert Interval",
+            "Merge Intervals",
+            "Non-overlapping Intervals",
+            "Meeting Rooms",
+            "Meeting Rooms II",
+            "Minimum Interval to Include Each Query",
+          ],
+        },
+      ];
+
+      const JAVA = [
+        {
+          id: "jcore",
+          name: "Java Core",
+          icon: "☕",
+          color: "#f59e0b",
+          items: [
+            "OOP Principles (SOLID)",
+            "Collections Framework",
+            "Exception Handling",
+            "Generics & Wildcards",
+            "Multithreading & Concurrency",
+            "Java 8+ (Streams, Lambdas, Optional)",
+            "Java 11–17 Features (Records, Sealed, Switch)",
+            "JVM & Memory Management",
+          ],
+        },
+        {
+          id: "spring",
+          name: "Spring Framework",
+          icon: "🌱",
+          color: "#22c55e",
+          items: [
+            "Spring Core (IoC & DI)",
+            "Bean Lifecycle & Scopes",
+            "Spring Boot Setup & Configuration",
+            "Spring MVC",
+            "Spring Security + JWT / OAuth2",
+            "Spring AOP",
+            "Spring Events & Async",
+          ],
+        },
+        {
+          id: "rest",
+          name: "REST API Design",
+          icon: "🔌",
+          color: "#6366f1",
+          items: [
+            "REST Principles & HTTP Methods",
+            "Request/Response Handling",
+            "API Versioning Strategies",
+            "Swagger / OpenAPI Documentation",
+            "Global Exception Handling",
+            "Input Validation (Bean Validation)",
+            "Rate Limiting & Throttling",
+          ],
+        },
+        {
+          id: "db",
+          name: "Databases",
+          icon: "🗄️",
+          color: "#3b82f6",
+          items: [
+            "MySQL Fundamentals & SQL",
+            "Joins, Indexes & Query Optimization",
+            "Transactions & ACID Properties",
+            "Hibernate / JPA ORM",
+            "JPQL & Criteria API",
+            "MongoDB Basics & CRUD",
+            "MongoDB Aggregation Pipeline",
+            "Redis Caching",
+            "Connection Pooling (HikariCP)",
+          ],
+        },
+        {
+          id: "react",
+          name: "React Frontend",
+          icon: "⚛️",
+          color: "#06b6d4",
+          items: [
+            "JSX & Functional Components",
+            "Props & State Management",
+            "React Hooks (useState useEffect useRef useContext)",
+            "React Router v6",
+            "Axios & API Integration",
+            "Redux Toolkit",
+            "Tailwind CSS / Material UI",
+            "Forms & Validation (React Hook Form)",
+          ],
+        },
+        {
+          id: "arch",
+          name: "Architecture",
+          icon: "🏗️",
+          color: "#8b5cf6",
+          items: [
+            "Monolith Architecture & Best Practices",
+            "Microservices Principles & Patterns",
+            "Service Discovery (Eureka)",
+            "API Gateway (Spring Cloud Gateway)",
+            "Inter-service Communication (Feign / RestTemplate)",
+            "Kafka / RabbitMQ Messaging",
+            "Circuit Breaker (Resilience4j)",
+            "Saga Pattern & Distributed Transactions",
+          ],
+        },
+        {
+          id: "cicd",
+          name: "CI/CD & DevOps",
+          icon: "🚀",
+          color: "#ec4899",
+          items: [
+            "Git Advanced (Branching Strategies, PR Reviews)",
+            "Docker (Images, Containers, Volumes)",
+            "Docker Compose",
+            "Kubernetes (Pods, Services, Deployments)",
+            "GitHub Actions Pipelines",
+            "Jenkins Pipeline",
+            "Maven & Gradle Build Tools",
+          ],
+        },
+        {
+          id: "staff",
+          name: "Staff-Level Skills",
+          icon: "⭐",
+          color: "#f43f5e",
+          items: [
+            "System Design – High Level (HLD)",
+            "Low-Level Design (LLD)",
+            "Design Patterns (GoF – Creational, Structural, Behavioral)",
+            "Testing (JUnit5, Mockito, Integration Tests)",
+            "Performance Tuning & Profiling",
+            "Observability (Logging, Metrics, Distributed Tracing)",
+            "Security Best Practices (OWASP Top 10)",
+            "Code Review & Engineering Excellence",
+          ],
+        },
+      ];
+
+      // ================================================================
+      // STATE
+      // ================================================================
+      let state = {
+        dsa: {},
+        java: {},
+        streak: { count: 0, last: null, dates: [] },
+      };
+      let expanded = {};
+      let currentTab = "dashboard";
+      let db = null;
+      let username = null;
+      let syncMode = "offline";
+
+      // ================================================================
+      // INIT
+      // ================================================================
+      function init() {
+        username = localStorage.getItem("tracker_username");
+
+        const savedState = localStorage.getItem("tracker_state");
+
+        if (savedState) {
+          try {
+            state = JSON.parse(savedState);
+          } catch (e) {}
+        }
+
+        if (username) {
+          hide("setupModal");
+          initFirebase(firebaseConfig);
+        } else {
+          show("setupModal");
+          render();
+        }
+      }
+
+      function hide(id) {
+        document.getElementById(id).style.display = "none";
+      }
+      function show(id) {
+        document.getElementById(id).style.display = "flex";
+      }
+
+      // ================================================================
+      // FIREBASE
+      // ================================================================
+      function initFirebase(config) {
+        try {
+          if (typeof firebase === "undefined")
+            throw new Error("Firebase not loaded");
+          if (!firebase.apps.length) firebase.initializeApp(config);
+          db = firebase.firestore();
+          db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+          syncMode = "firebase";
+          updateBadge("syncing");
+          listenFirebase();
+        } catch (e) {
+          syncMode = "offline";
+          updateBadge("offline");
+          render();
+        }
+      }
+
+      function listenFirebase() {
+        if (!db || !username) return;
+        db.collection("trackers")
+          .doc(username)
+          .onSnapshot(
+            (doc) => {
+              if (doc.exists) {
+                const r = doc.data();
+                state.dsa = Object.assign({}, state.dsa, r.dsa || {});
+                state.java = Object.assign({}, state.java, r.java || {});
+                if (
+                  r.streak &&
+                  (r.streak.count || 0) >= (state.streak.count || 0)
+                ) {
+                  state.streak = r.streak;
+                }
+                saveLocal();
+              }
+              updateBadge("synced");
+              render();
+            },
+            () => {
+              updateBadge("offline");
+              render();
+            },
+          );
+      }
+
+      function saveToFirebase() {
+        if (!db || !username || syncMode !== "firebase") return;
+        const ts =
+          typeof firebase !== "undefined"
+            ? firebase.firestore.FieldValue.serverTimestamp()
+            : null;
+        db.collection("trackers")
+          .doc(username)
+          .set({
+            dsa: state.dsa,
+            java: state.java,
+            streak: state.streak,
+            updatedAt: ts,
+          })
+          .catch(() => {});
+      }
+
+      function saveLocal() {
+        localStorage.setItem("tracker_state", JSON.stringify(state));
+      }
+
+      function save() {
+        saveLocal();
+        saveToFirebase();
+      }
+
+      // ================================================================
+      // SETUP HANDLERS
+      // ================================================================
+      function parseConfig(raw) {
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error("No config object found");
+        let s = match[0]
+          .replace(/\/\/[^\n]*/g, "")
+          .replace(/([{,]\s*)([a-zA-Z_$][\w$]*)(\s*):/g, '$1"$2"$3:')
+          .replace(/'/g, '"')
+          .replace(/,(\s*[}\]])/g, "$1");
+        return JSON.parse(s);
+      }
+
+      function setupFirebase() {
+        const raw = document.getElementById("configInput").value.trim();
+        const user = document
+          .getElementById("usernameInput")
+          .value.trim()
+          .toLowerCase()
+          .replace(/\s+/g, "");
+        if (!user) {
+          toast("Please enter a username");
+          return;
+        }
+        let config;
+        try {
+          config = parseConfig(raw);
+        } catch (e) {
+          toast("Could not parse config — copy the full firebaseConfig block");
+          return;
+        }
+        localStorage.setItem("fb_config", JSON.stringify(config));
+        localStorage.setItem("tracker_username", user);
+        username = user;
+        hide("setupModal");
+        initFirebase(config);
+      }
+
+      function useOfflineOnly() {
+        const raw = document.getElementById("usernameInput").value.trim();
+        const user = raw.replace(/\s+/g, "").toLowerCase() || "local";
+        localStorage.setItem("tracker_username", user);
+        username = user;
+        syncMode = "offline";
+        hide("setupModal");
+        updateBadge("offline");
+        render();
+      }
+
+      // ================================================================
+      // ACTIONS
+      // ================================================================
+      function toggleItem(track, topicIdx, itemIdx) {
+        const dataset = track === "dsa" ? DSA[topicIdx] : JAVA[topicIdx];
+        const item = dataset.items[itemIdx];
+        const key = dataset.id + "::" + item;
+        const t = track === "dsa" ? state.dsa : state.java;
+        t[key] = !t[key];
+        save();
+        render();
+      }
+
+      function markToday() {
+        const today = new Date().toDateString();
+        if (state.streak.last === today) return;
+        const yest = new Date();
+        yest.setDate(yest.getDate() - 1);
+        const consec = state.streak.last === yest.toDateString();
+        state.streak.count = consec ? state.streak.count + 1 : 1;
+        state.streak.last = today;
+        state.streak.dates = [...(state.streak.dates || []), today].slice(-60);
+        save();
+        render();
+        toast("🔥 Day " + state.streak.count + " logged! Keep going.");
+      }
+
+      function shareWithClaude() {
+        const totalDSA = DSA.reduce((s, t) => s + t.items.length, 0);
+        const doneDSA = Object.values(state.dsa).filter(Boolean).length;
+        const totalJava = JAVA.reduce((s, t) => s + t.items.length, 0);
+        const doneJava = Object.values(state.java).filter(Boolean).length;
+        const overall =
+          Math.round(((doneDSA + doneJava) / (totalDSA + totalJava)) * 100) ||
+          0;
+
+        let out = "📊 Learning Progress Update — ";
+        out +=
+          new Date().toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }) + "\n\n";
+        out += `🔥 Streak: ${state.streak.count} days\n`;
+        out += `📈 Overall: ${overall}% (${doneDSA + doneJava}/${totalDSA + totalJava} items done)\n\n`;
+
+        out += `── Python DSA: ${doneDSA}/${totalDSA} (${Math.round((doneDSA / totalDSA) * 100) || 0}%) ──\n`;
+        DSA.forEach((t) => {
+          const done = t.items.filter((i) => state.dsa[t.id + "::" + i]).length;
+          const icon = done === t.items.length ? "✅" : done > 0 ? "🟡" : "⬜";
+          out += `  ${icon} ${t.name}: ${done}/${t.items.length}\n`;
+        });
+
+        out += `\n── Java Full Stack: ${doneJava}/${totalJava} (${Math.round((doneJava / totalJava) * 100) || 0}%) ──\n`;
+        JAVA.forEach((s) => {
+          const done = s.items.filter(
+            (i) => state.java[s.id + "::" + i],
+          ).length;
+          const icon = done === s.items.length ? "✅" : done > 0 ? "🟡" : "⬜";
+          out += `  ${icon} ${s.icon} ${s.name}: ${done}/${s.items.length}\n`;
+        });
+
+        out += `\nGoal: 30–60 LPA · Please review my progress and advise what to focus on next.`;
+
+        if (navigator.clipboard) {
+          navigator.clipboard
+            .writeText(out)
+            .then(() => toast("✅ Copied! Paste this into Claude.ai chat"))
+            .catch(() => fallbackCopy(out));
+        } else {
+          fallbackCopy(out);
+        }
+      }
+
+      function fallbackCopy(text) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        toast("✅ Copied! Paste into Claude.ai chat");
+      }
+
+      // ================================================================
+      // UI HELPERS
+      // ================================================================
+      function updateBadge(status) {
+        const badge = document.getElementById("syncBadge");
+        if (!badge) return;
+        const map = {
+          synced: ["#dcfce7", "#166534", "✅ synced"],
+          syncing: ["#fef3c7", "#92400e", "⏳ syncing…"],
+          offline: ["#f1f5f9", "#475569", "📴 offline"],
+          error: ["#fee2e2", "#991b1b", "❌ error"],
+        };
+        const [bg, color, text] = map[status] || map.offline;
+        badge.style.background = bg;
+        badge.style.color = color;
+        badge.textContent = text;
+      }
+
+      function toast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2800);
+      }
+
+      function switchTab(tab, btn) {
+        currentTab = tab;
+        document
+          .querySelectorAll(".tab")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        ["dashboard", "dsa", "java"].forEach((t) => {
+          document.getElementById("tab-" + t).style.display =
+            t === tab ? "" : "none";
+        });
+      }
+
+      function toggleExpand(id) {
+        expanded[id] = !expanded[id];
+        render();
+      }
+
+      function pbar(pct, color, h = "8px") {
+        return (
+          `<div class="pbar-wrap" style="height:${h}">` +
+          `<div class="pbar" style="height:100%;width:${pct}%;background:${color}"></div></div>`
+        );
+      }
+
+      function getProgress(dataset, track) {
+        const prog = track === "dsa" ? state.dsa : state.java;
+        const done = dataset.items.filter(
+          (i) => prog[dataset.id + "::" + i],
+        ).length;
+        const total = dataset.items.length;
+        return {
+          done,
+          total,
+          pct: total ? Math.round((done / total) * 100) : 0,
+        };
+      }
+
+      function renderCheckList(dataset, track, topicIdx) {
+        const prog = track === "dsa" ? state.dsa : state.java;
+        return dataset.items
+          .map((item, itemIdx) => {
+            const key = dataset.id + "::" + item;
+            const done = prog[key];
+            const col = dataset.color;
+            return `<div class="check-row" onclick="toggleItem('${track}',${topicIdx},${itemIdx})">
+      <div class="checkbx" style="${
+        done
+          ? "background:" + col + ";border-color:" + col + ";color:#fff"
+          : "border-color:" + col
+      }">
+        ${done ? '<i class="ti ti-check" style="font-size:10px"></i>' : ""}
+      </div>
+      <span style="font-size:13px;flex:1;color:${done ? "var(--text3)" : "var(--text)"};text-decoration:${done ? "line-through" : "none"}">${item}</span>
+      ${done ? `<span style="font-size:11px;color:${col};font-weight:600">✓</span>` : ""}
+    </div>`;
+          })
+          .join("");
+      }
+
+      function renderTopicCard(dataset, track, topicIdx) {
+        const { done, total, pct } = getProgress(dataset, track);
+        const isExp = expanded[dataset.id];
+        return `<div class="topic-card">
+    <button class="topic-btn" onclick="toggleExpand('${dataset.id}')">
+      <div style="width:10px;height:10px;border-radius:50%;background:${dataset.color};flex-shrink:0"></div>
+      ${dataset.icon ? `<span style="font-size:15px">${dataset.icon}</span>` : ""}
+      <span style="flex:1;font-size:14px;font-weight:500">${dataset.name}</span>
+      <span style="font-size:12px;color:${dataset.color};font-weight:600;margin-right:8px">${done}/${total}</span>
+      <div style="width:54px">${pbar(pct, dataset.color, "5px")}</div>
+      <i class="ti ti-chevron-${isExp ? "up" : "down"}" style="font-size:14px;color:var(--text3);margin-left:8px"></i>
+    </button>
+    ${isExp ? `<div class="check-list">${renderCheckList(dataset, track, topicIdx)}</div>` : ""}
+  </div>`;
+      }
+
+      // ================================================================
+      // RENDER
+      // ================================================================
+      function render() {
+        const today = new Date().toDateString();
+        const markedToday = state.streak.last === today;
+
+        const markBtn = document.getElementById("markBtn");
+        if (markBtn) {
+          markBtn.className =
+            "btn " + (markedToday ? "btn-success" : "btn-primary");
+          markBtn.innerHTML = markedToday
+            ? '<i class="ti ti-check"></i> Today logged'
+            : '<i class="ti ti-flame"></i> Mark today done';
+        }
+
+        const su = document.getElementById("syncUser");
+        if (su && username) su.textContent = "@" + username;
+
+        // Streak dots
+        const dotsEl = document.getElementById("streakDots");
+        if (dotsEl) {
+          let html = "";
+          for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const ds = d.toDateString();
+            const marked = (state.streak.dates || []).includes(ds);
+            const isToday = ds === today;
+            html += `<div class="streak-dot" title="${ds}" style="background:${marked ? "#22c55e" : "var(--surface2)"};border:${isToday ? "2px solid var(--accent)" : "1px solid var(--border)"}"></div>`;
+          }
+          dotsEl.innerHTML = html;
+        }
+        document.getElementById("streakCount").textContent =
+          state.streak.count || 0;
+
+        const totalDSA = DSA.reduce((s, t) => s + t.items.length, 0);
+        const doneDSA = Object.values(state.dsa).filter(Boolean).length;
+        const totalJava = JAVA.reduce((s, t) => s + t.items.length, 0);
+        const doneJava = Object.values(state.java).filter(Boolean).length;
+        const overall =
+          Math.round(((doneDSA + doneJava) / (totalDSA + totalJava)) * 100) ||
+          0;
+        document.getElementById("overallPct").textContent = overall + "%";
+
+        const dsaPct = Math.round((doneDSA / totalDSA) * 100) || 0;
+        const javaPct = Math.round((doneJava / totalJava) * 100) || 0;
+
+        // Dashboard tab
+        document.getElementById("tab-dashboard").innerHTML = `
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="card" style="border-top:3px solid #6366f1">
+        <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:4px">Python DSA</div>
+        <div style="font-size:26px;font-weight:700;color:#6366f1">${doneDSA}<span style="font-size:14px;color:var(--text2)">/${totalDSA}</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">problems solved</div>
+        ${pbar(dsaPct, "#6366f1")}
+        <div style="font-size:12px;color:#6366f1;margin-top:5px;text-align:right;font-weight:600">${dsaPct}%</div>
+      </div>
+      <div class="card" style="border-top:3px solid #f59e0b">
+        <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:4px">Java Full Stack</div>
+        <div style="font-size:26px;font-weight:700;color:#f59e0b">${doneJava}<span style="font-size:14px;color:var(--text2)">/${totalJava}</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">topics completed</div>
+        ${pbar(javaPct, "#f59e0b")}
+        <div style="font-size:12px;color:#f59e0b;margin-top:5px;text-align:right;font-weight:600">${javaPct}%</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">DSA by topic</div>
+      ${DSA.map((t) => {
+        const p = getProgress(t, "dsa");
+        return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${t.name}</span><span style="color:var(--text2)">${p.done}/${p.total}</span></div>${pbar(p.pct, t.color, "5px")}</div>`;
+      }).join("")}
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Java by stage</div>
+      ${JAVA.map((s) => {
+        const p = getProgress(s, "java");
+        return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${s.icon} ${s.name}</span><span style="color:var(--text2)">${p.done}/${p.total}</span></div>${pbar(p.pct, s.color, "5px")}</div>`;
+      }).join("")}
+    </div>`;
+
+        // DSA tab
+        document.getElementById("tab-dsa").innerHTML = `
+    <p style="font-size:12px;color:var(--text2);margin-bottom:1rem">Blind 75 — solve on LeetCode in Python · tick only when you solved it yourself (not with AI)</p>
+    ${DSA.map((t, i) => renderTopicCard(t, "dsa", i)).join("")}`;
+
+        // Java tab
+        document.getElementById("tab-java").innerHTML = `
+    <p style="font-size:12px;color:var(--text2);margin-bottom:1rem">Staff/Senior path — tick only when you genuinely understand the topic</p>
+    ${JAVA.map((s, i) => renderTopicCard(s, "java", i)).join("")}`;
+      }
+
+      // ================================================================
+      // START
+      // ================================================================
+      init();
+    </script>
+  </body>
+</html>
